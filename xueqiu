@@ -1,0 +1,44 @@
+import requests
+import json
+from lxml import etree
+from pymongo import MongoClient
+
+import re
+
+class Xueqiu:
+    def __init__(self):
+        self.url2="https://xueqiu.com/S/SZ0000{}"
+
+        self.headers={"User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Mobile Safari/537.36"}
+    def get(self):
+        url_list1=[]
+        for i in range(1,14):
+            n=str(i)
+            s=n.zfill(2)
+            url_list1.append(self.url2.format(s))
+        return url_list1
+        #return [self.url2.format(i) for i in range(1,14)]
+    def parse(self,url):
+        response = requests.get(url,headers=self.headers)
+        return response.content.decode()
+    def data(self,ret1):
+        #print(ret1)
+        item = {}
+        item['all'] = re.findall('<title>(.*?)的', ret1, re.S)
+        item["high"] = re.findall('"high52w":(.*?),', ret1, re.S)
+        client = MongoClient('localhost',27017)
+        db = client.test
+        collection = db.stu1
+        collection.insert({"name":item['all'],"high":item['high']})
+        return item
+    def run(self):
+        url_list = self.get()
+        for url in url_list:
+            ret1 = self.parse(url)
+            ret3=self.data(ret1)
+            print(ret3)
+
+            
+if __name__=='__main__':
+    xueqiu=Xueqiu()
+    xueqiu.run()
