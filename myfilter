@@ -1,74 +1,53 @@
-from lxml import etree
-import requests
-import hashlib
-from urllib import parse
 import json
-from scrapy.utils.python import to_bytes
+import requests
+from requests.exceptions import RequestException
+import re
+import time
 
 
-class Douban_comment:
-    def __init__(self):
-        self.url = 'https://movie.douban.com/subject/26213252/comments?sort=time&status=P'
-        self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36'}
-        self.sum_comment = set()
-    def get_html(self,url):
-        respons = requests.get(url,headers = self.headers).content.decode()
-
-        html_str = etree.HTML(respons)
-        return html_str
-    def get_data(self,html_str):
-        conment_list = html_str.xpath("//div[@id='comments']/div")
-        #// *[ @ id = "comments"] / div[1]
-        list = []
-
-        #print(type(pattern))
-        for conment in conment_list:
-            #pattern = re.compile('class>.*?</a>', re.S)
-            #print(type(conment))
-            item = {}
-            item["name"] = conment.xpath("./div[2]/h3/span[2]/a/text()")
-            first = conment.xpath('./div[2]/p/span/text()')
-            item["comment"] = self.parse_comment(first)
-            #print(item)
-            list.append(item)
-        #print(list)
-        return list
-    def save(self,main_data):
-        with open("douban_comment.json","a",encoding='utf-8') as f:
-            f.write(json.dumps(main_data,ensure_ascii=False))
-            f.write("\n")
-    def parse_comment(self,first):
-        fp = hashlib.sha1()
-        first = ''.join(first)
-
-            #print(type(first))
-        fp.update(to_bytes(first, encoding="utf-8"))
-        test = fp.hexdigest()
-
-        #print(test)
-        if test in self.sum_comment:
-
-            return None
-        else:
-            self.sum_comment.add(test)
-            return first
-
-    def run(self):
-        base_url = 'https://movie.douban.com/subject/26213252/comments'
-        next_url = self.url
-        while next_url !="":
-            #next_url = base_url + next_url
-            print(next_url)
-            html_str = self.get_html(next_url)
-            next_url = html_str.xpath("//a[@class='next']/@href")
-            next_url = ''.join(next_url)
-            print(next_url)
-            if next_url !="":
-                next_url = base_url+next_url
+def get_one_page(url):
+    try:
+        headers ={'Accept': '*/*',
+               'Accept-Language': 'en-US,en;q=0.8',
+               'Cache-Control': 'max-age=0',
+               'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36',
+               'Connection': 'keep-alive',
+               'Referer': 'http://www.baidu.com/'
+        }
+        response = requests.get(url,headers=headers)
+        if response.status_code == 200:
+            return response.text
+        return None
+    except RequestException:
+        return None
 
 
-            main_data = self.get_data(html_str)
-            self.save(main_data)
+def parse_one_page(html):
+    pattern = re.compile('<dd>.*?board-index.*?>(\d+)</i>.*?data-src="(.*?)".*?name"><a'
+                         + '.*?>(.*?)</a>.*?star">(.*?)</p>.*?releasetime">(.*?)</p>'
+                         + '.*?integer">(.*?)</i>.*?fraction">(.*?)</i>.*?</dd>', re.S)
+    items = re.findall(pattern, str(html))
+    for item in items:
+
+          yield {
+            'index': item[0],
+            'image': item[1],
+            'title': item[2],
+            'actor': item[3].strip()[3:],
+            'time': item[4].strip()[5:],
+            'score': item[5] + item[6]
+           }
+
+def write_to_file(content):
+    with open('result.txt', 'a', encoding='utf-8') as f:
+        f.write(json.dumps(content, ensure_ascii=False) + '\n')
+def main(offset):
+    url = 'http://maoyan.com/board/4?offset=' + str(offset)
+    html = get_one_page(url)
+    for item in parse_one_page(html):
+        print(item)
+        write_to_file(item)
 if __name__ == '__main__':
-    a = Douban_comment()
-    a.run()
+    for i in range(10):
+        main(offset=i * 10)
+        time.sleep(1)
