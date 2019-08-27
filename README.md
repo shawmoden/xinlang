@@ -1,6 +1,6 @@
-Mainly some small exercises for crawler
-======================
-[xinxinlong is nextpage ](https://github.com/onlysmei/xinxinlang/blob/master/main)</br>
-xueqiu is re and base</br>
-my_filter is use shl1 and set() for duplicate </br>
---------------------------
+# 新闻处理
+## 通过正则抓取新浪、腾讯和网易的新闻url之后通过redis缓存和指纹去重。
+## 进行简单的倒序索引和textRank进行了打分，最后用余弦相似度进行了类别。
+
+
+# 部分代码参考了一些博客和github，并且由于数量太大，只进行了一个例子进行演示
