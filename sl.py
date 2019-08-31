@@ -12,7 +12,7 @@ class Cong:
         self.final = []
         self.url = []
         self.AllData = []
-        r = redis.StrictRedis(host='127.0.0.1', port=6379, db=0)
+        r = redis.StrictRedis(host='127.0.0.1', port=6380, db=0)
         pipe = r.pipeline()
         pipe.lrange('sina', 120, 130)
         result = pipe.execute()
