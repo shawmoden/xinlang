@@ -2,6 +2,7 @@ import redis
 import re
 import aiohttp
 import asyncio
+import pymysql
 from lxml import etree
 from fen.cunchu import CunChu
 
@@ -12,6 +13,8 @@ class Cong:
         self.final = []
         self.url = []
         self.AllData = []
+        conn = pymysql.connect(host='localhost', port=3306, user='root', passwd='1234', db="test")
+        self.cursor = conn.cursor
         r = redis.StrictRedis(host='127.0.0.1', port=6380, db=0)
         pipe = r.pipeline()
         pipe.lrange('sina', 120, 130)
@@ -79,6 +82,7 @@ class Cong:
                     key = key + a
                 all = {'title': title, 'key': key}
                 self.all = {url: all}
+                self.cursor.execute('insert into test value(%s,%s)'%(self.all,all))
                 # a =Node(self.all,url,all)
                 # b =a.add()
                 self.AllData.append(self.all)
